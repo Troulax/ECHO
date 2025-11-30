@@ -1,3 +1,4 @@
+import 'package:echo_app/past_quakes_page.dart';
 import 'package:flutter/material.dart';
 
 import 'home_page.dart';
@@ -29,7 +30,9 @@ class EchoApp extends StatelessWidget {
         '/alerts': (_) => const AlertsPage(),      
         '/resources': (_) => const ResourcesPage(), 
         '/contacts': (_) => const ContactsPage(),  
-        '/roads': (_) => const RoadsPage(),       
+        '/roads': (_) => const RoadsPage(),
+        '/past-quakes': (context) => const PastQuakesPage(),
+       
       }
     );
   }

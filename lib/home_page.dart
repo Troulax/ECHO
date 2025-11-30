@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'services/afad_service.dart';
+import 'services/whistle_service.dart';   // ← EKLENDİ
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,11 +12,19 @@ class _HomePageState extends State<HomePage> {
   String? _lastStatus; // 'safe' | 'injured' | 'trapped'
   String? _lastNote;
 
+  Future<List<Map<String, dynamic>>>? _futureAfad;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureAfad = AfadService.fetchLast10();
+  }
+
   Future<void> _openReport(BuildContext context, {String? preset}) async {
     final result = await Navigator.pushNamed(
       context,
       '/report',
-      arguments: preset, // 'safe'|'injured'|'trapped'|null
+      arguments: preset,
     );
 
     if (result is Map && result['status'] is String) {
@@ -38,21 +48,52 @@ class _HomePageState extends State<HomePage> {
     final t = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ECHO')),
+      appBar: AppBar(
+        title: const Text('ECHO'),
+        actions: [
+          // --- WHISTLE ICON (EKLENDİ) ---
+          IconButton(
+            icon: Icon(
+              Icons.campaign_rounded,
+              size: 30,
+              color: WhistleService.isRunning
+                  ? Colors.red
+                  : Colors.black87,
+            ),
+            tooltip: WhistleService.isRunning
+                ? "Whistle Durdur"
+                : "Whistle Başlat",
+            onPressed: () async {
+              if (WhistleService.isRunning) {
+                await WhistleService.stop();
+              } else {
+                await WhistleService.start();
+              }
+              setState(() {});
+            },
+          ),
+
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: "Geçmiş Depremler",
+            onPressed: () => Navigator.pushNamed(context, '/past-quakes'),
+          ),
+        ],
+      ),
+
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openReport(context),
         icon: const Icon(Icons.sos_rounded),
         label: const Text('Durum Bildir'),
       ),
+
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // === Son Durumum alanı ===
           _statusBanner(),
 
           const SizedBox(height: 16),
 
-          // Durum bildirimi kartı
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -63,11 +104,15 @@ class _HomePageState extends State<HomePage> {
                       style: t.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   Wrap(
-                    spacing: 12, runSpacing: 12,
+                    spacing: 12,
+                    runSpacing: 12,
                     children: [
-                      _statusChip(context, 'Güvendeyim', Icons.verified_user, Colors.green, 'safe'),
-                      _statusChip(context, 'Yaralıyım', Icons.medical_information, Colors.orange, 'injured'),
-                      _statusChip(context, 'Enkaz Altındayım', Icons.report_gmailerrorred, Colors.red, 'trapped'),
+                      _statusChip(context, 'Güvendeyim', Icons.verified_user,
+                          Colors.green, 'safe'),
+                      _statusChip(context, 'Yaralıyım',
+                          Icons.medical_information, Colors.orange, 'injured'),
+                      _statusChip(context, 'Enkaz Altındayım',
+                          Icons.report_gmailerrorred, Colors.red, 'trapped'),
                     ],
                   ),
                 ],
@@ -77,7 +122,6 @@ class _HomePageState extends State<HomePage> {
 
           const SizedBox(height: 16),
 
-          // Kısayollar
           Row(
             children: [
               Expanded(child: _quickAction(context, 'Uyarılar', Icons.notifications_active_outlined, '/alerts')),
@@ -93,9 +137,48 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 16),
           Text('Son Uyarılar', style: t.titleMedium),
           const SizedBox(height: 8),
-          const _AlertTile(title: 'M5.1 - 12 km Doğu, Düzce', timeText: '2 dk önce', severity: _Severity.high),
-          const _AlertTile(title: 'AFAD: Artçı sarsıntılar bekleniyor', timeText: '15 dk önce', severity: _Severity.medium),
-          const _AlertTile(title: 'Toplanma alanları bilgilendirmesi', timeText: '1 saat önce', severity: _Severity.low),
+
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _futureAfad,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return const Text("Deprem verisi alınırken hata oluştu.");
+              }
+
+              final data = snapshot.data;
+
+              if (data == null || data.isEmpty) {
+                return const Text("Gösterilecek uyarı bulunmuyor.");
+              }
+
+              return Column(
+                children: data.map((d) {
+                  final mag = (d["mag"] ?? 0).toDouble();
+                  final title = d["title"]?.toString() ?? "Bilinmeyen konum";
+                  final date = d["date"]?.toString() ?? "";
+
+                  final sev = mag < 3
+                      ? _Severity.low
+                      : mag < 5
+                          ? _Severity.medium
+                          : _Severity.high;
+
+                  return _AlertTile(
+                    title: "M$mag - $title",
+                    timeText: date,
+                    severity: sev,
+                  );
+                }).toList(),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -127,7 +210,6 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // Renk/ikon statüye göre
     final (text, icon, color) = switch (_lastStatus) {
       'safe' => ('Güvendedir', Icons.verified, Colors.green),
       'injured' => ('Yaralı bildirildi', Icons.medical_services_rounded, Colors.orange),
@@ -150,7 +232,8 @@ class _HomePageState extends State<HomePage> {
               _lastNote == null || _lastNote!.isEmpty
                   ? 'Son durumunuz: $text'
                   : 'Son durumunuz: $text — Not: $_lastNote',
-              style: TextStyle(fontWeight: FontWeight.w600, color: color.shade700),
+              style:
+                  TextStyle(fontWeight: FontWeight.w600, color: color.shade700),
             ),
           ),
         ],
@@ -158,7 +241,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _statusChip(BuildContext context, String label, IconData icon, Color color, String preset) {
+  Widget _statusChip(BuildContext context, String label, IconData icon,
+      Color color, String preset) {
     return ActionChip(
       avatar: Icon(icon, color: color),
       label: Text(label),
@@ -166,7 +250,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _quickAction(BuildContext context, String title, IconData icon, String route) {
+  Widget _quickAction(
+      BuildContext context, String title, IconData icon, String route) {
     return InkWell(
       onTap: () => Navigator.pushNamed(context, route),
       borderRadius: BorderRadius.circular(16),
@@ -194,14 +279,15 @@ class _AlertTile extends StatelessWidget {
   final String title;
   final String timeText;
   final _Severity severity;
-  const _AlertTile({required this.title, required this.timeText, required this.severity});
+  const _AlertTile(
+      {required this.title, required this.timeText, required this.severity});
 
   @override
   Widget build(BuildContext context) {
     final Color bar = switch (severity) {
       _Severity.high => Colors.red,
       _Severity.medium => Colors.orange,
-      _Severity.low => Theme.of(context).colorScheme.primary,
+      _Severity.low => Colors.green,
     };
 
     return Card(
@@ -210,7 +296,8 @@ class _AlertTile extends StatelessWidget {
           Container(width: 6, height: 72, color: bar),
           Expanded(
             child: ListTile(
-              title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+              title: Text(title,
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
               subtitle: Text(timeText),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {},
