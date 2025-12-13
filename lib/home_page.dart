@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'services/afad_service.dart';
 import 'services/whistle_service.dart';   // ← EKLENDİ
+import 'chatbot_page.dart';    // < EKLENDİ
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -115,6 +117,18 @@ class _HomePageState extends State<HomePage> {
                           Icons.report_gmailerrorred, Colors.red, 'trapped'),
                     ],
                   ),
+
+                  // Yeni echobot BUtonu
+                    ActionChip(
+                      avatar: const Icon(Icons.smart_toy, color: Colors.blue),
+                      label: const Text("EchoBot"),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ChatBotPage()),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
