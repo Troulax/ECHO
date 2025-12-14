@@ -1,64 +1,79 @@
 import 'package:flutter/material.dart';
 import 'services/afad_service.dart';
+import 'services/echo_card.dart';
+import 'services/app_text.dart';
 
-class PastQuakesPage extends StatefulWidget {
+class PastQuakesPage extends StatelessWidget {
   const PastQuakesPage({super.key});
-
-  @override
-  State<PastQuakesPage> createState() => _PastQuakesPageState();
-}
-
-class _PastQuakesPageState extends State<PastQuakesPage> {
-  late Future<List<Map<String, dynamic>>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    // İstersen 50 geçmiş deprem alabiliriz:
-    _future = AfadService.fetchLast10();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Geçmiş Depremler")),
-      body: FutureBuilder(
-        future: _future,
+      appBar: AppBar(
+        title: const Text('Geçmiş Depremler'),
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: AfadService.fetchLast10(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final data = snapshot.data!;
-
-          if (data.isEmpty) {
-            return const Center(child: Text("Deprem kaydı bulunamadı."));
-          }
-
-          return ListView.builder(
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
             itemCount: data.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
               final d = data[i];
+              final mag = (d['mag'] ?? 0).toDouble();
+              final title = d['title'] ?? 'Bilinmeyen konum';
+              final date = d['date'] ?? 'Tarih yok';
 
-              final mag = (d["mag"] ?? 0).toDouble();
-              final title = d["title"]?.toString() ?? "Bilinmeyen konum";
-              final date = d["date"]?.toString() ?? "Tarih yok";
-
-              // Renk belirleme (0-3 yeşil, 3-5 turuncu, 5+ kırmızı)
-              Color color = mag < 3
+              final color = mag < 3
                   ? Colors.green
                   : mag < 5
-                      ? Colors.orange
-                      : Colors.red;
+                  ? Colors.orange
+                  : Colors.red;
 
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: color,
-                  foregroundColor: Colors.white,
-                  child: Text(mag.toStringAsFixed(1)),
+              return EchoCard(
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: color,
+                      child: Text(
+                        mag.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AppText(
+                            title,
+                            maxLines: 2,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          AppText(
+                            date,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                title: Text(title),
-                subtitle: Text(date),
               );
             },
           );
