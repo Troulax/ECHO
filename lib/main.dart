@@ -10,6 +10,9 @@ import 'resources_page.dart';
 import 'contacts_page.dart';
 import 'roads_page.dart';
 import 'past_quakes_page.dart';
+import 'login_page.dart';
+import 'signup_page.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,16 +57,18 @@ class EchoApp extends StatelessWidget {
         ),
       ),
 
-      initialRoute: Routes.home,
-      routes: {
-        Routes.home: (_) => const HomePage(),
-        Routes.report: (_) => const ReportStatusPage(),
-        Routes.alerts: (_) => const AlertsPage(),
-        Routes.resources: (_) => const ResourcesPage(),
-        Routes.contacts: (_) => const ContactsPage(),
-        Routes.roads: (_) => const RoadsPage(),
-        Routes.pastQuakes: (_) => const PastQuakesPage(),
-      },
+      initialRoute: Routes.login,
+        routes: {
+          Routes.login: (_) => const LoginPage(),
+          Routes.signup: (_) => const SignUpPage(),
+          Routes.home: (_) => const HomePage(),
+          Routes.report: (_) => const ReportStatusPage(),
+          Routes.alerts: (_) => const AlertsPage(),
+          Routes.resources: (_) => const ResourcesPage(),
+          Routes.contacts: (_) => const ContactsPage(),
+          Routes.roads: (_) => const RoadsPage(),
+          Routes.pastQuakes: (_) => const PastQuakesPage(),
+        },
     );
   }
 }

@@ -1,9 +1,11 @@
 class Routes {
-  static const home = '/';
-  static const report = '/report';
-  static const alerts = '/alerts';
-  static const resources = '/resources';
-  static const contacts = '/contacts';
-  static const roads = '/roads';
-  static const pastQuakes = '/past-quakes';
+  static const String login = '/login';
+  static const String signup = '/signup';
+  static const String home = '/home';
+  static const String report = '/report';
+  static const String alerts = '/alerts';
+  static const String resources = '/resources';
+  static const String contacts = '/contacts';
+  static const String roads = '/roads';
+  static const String pastQuakes = '/pastQuakes';
 }
