@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text.trim();
 
     if (username == 'admin' && password == '123') {
-      Navigator.pushReplacementNamed(context, Routes.home);
+      Navigator.pushReplacementNamed(context, Routes.root);
     } else {
       setState(() {
         _errorText = 'Kullanıcı adı veya şifre hatalı';

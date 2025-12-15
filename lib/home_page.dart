@@ -17,7 +17,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  void _openEchoBot() {
+  String? _currentStatus; // null => henüz bildirilmedi
+  IconData _statusIcon = Icons.info_outline;
+  Color _statusColor = Colors.white;
+
+  void _openChatBot() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ChatBotPage()),
@@ -45,9 +49,7 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Düdük',
             icon: Icon(
               Icons.campaign,
-              color: WhistleService.isRunning
-                  ? Colors.redAccent
-                  : Colors.white,
+              color: WhistleService.isRunning ? Colors.redAccent : Colors.white,
             ),
             onPressed: () async {
               if (WhistleService.isRunning) {
@@ -61,12 +63,10 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             tooltip: 'Geçmiş Depremler',
             icon: const Icon(Icons.history),
-            onPressed: () =>
-                Navigator.pushNamed(context, Routes.pastQuakes),
+            onPressed: () => Navigator.pushNamed(context, Routes.pastQuakes),
           ),
         ],
       ),
-
       body: BasePage(
         child: Stack(
           children: [
@@ -82,23 +82,26 @@ class _HomePageState extends State<HomePage> {
                       const AppText(
                         'Durumunuz',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 14),
+
                       _statusButton(
                         'Güvendeyim',
                         Icons.verified_user,
                         Colors.green,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 10),
+
                       _statusButton(
                         'Yaralıyım',
                         Icons.medical_information,
                         Colors.orange,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 10),
+
                       _statusButton(
                         'Enkaz Altındayım',
                         Icons.report_gmailerrorred,
@@ -107,89 +110,43 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 8),
-
-                Expanded(
-                  child: GridView.count(
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.6,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    children: [
-                      _quickAction(
-                        'Uyarılar',
-                        Icons.notifications_active_outlined,
-                        Routes.alerts,
-                      ),
-                      _quickAction(
-                        'Kaynaklar',
-                        Icons.volunteer_activism_outlined,
-                        Routes.resources,
-                      ),
-                      _quickAction(
-                        'Tanıdıklar',
-                        Icons.contacts_outlined,
-                        Routes.contacts,
-                      ),
-                      _quickAction(
-                        'Yol Durumu',
-                        Icons.alt_route_rounded,
-                        Routes.roads,
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
 
-            /// 🔵 SABİT ECHOBOT
             Positioned(
               right: 16,
               bottom: 16,
-              child: GestureDetector(
-                onTap: _openEchoBot,
-                child: _echoBotBall(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ---------------- UI PARÇALARI ----------------
-
-  Widget _echoBotBall() {
-    return Material(
-      elevation: 10,
-      shape: const CircleBorder(),
-      child: Container(
-        width: 72,
-        height: 72,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF4FC3F7),
-              Color(0xFF1976D2),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.smart_toy, color: Colors.white, size: 30),
-            SizedBox(height: 2),
-            Text(
-              'EchoBot',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
+              child: Material(
+                color: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                clipBehavior: Clip.antiAlias, // 👈 gerçek kırpma
+                child: InkWell(
+                  onTap: _openChatBot,
+                  splashColor: Colors.white12,
+                  highlightColor: Colors.transparent,
+                  child: Ink(
+                    width: 62,
+                    height: 62,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3F5F8F),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.smart_toy_outlined,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -199,15 +156,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _statusBanner() {
+    final text = _currentStatus == null
+        ? 'Durumunuz henüz bildirilmedi.'
+        : 'Durumunuz: $_currentStatus';
+
     return EchoCard(
       child: Row(
-        children: const [
-          Icon(Icons.info_outline, color: Colors.blue),
-          SizedBox(width: 8),
+        children: [
+          Icon(_statusIcon, size: 18, color: _statusColor),
+          const SizedBox(width: 10),
           Expanded(
             child: AppText(
-              'Son durumunuz henüz bildirilmedi.',
+              text,
               maxLines: 2,
+              style: TextStyle(
+                color: _currentStatus == null ? null : _statusColor,
+                fontWeight: _currentStatus == null ? null : FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -216,56 +181,34 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _statusButton(
-      String label,
-      IconData icon,
-      Color color,
-      ) {
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        icon: Icon(icon, size: 18),
+        icon: Icon(icon),
         label: Text(label),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 11),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.normal,
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: () {},
-      ),
-    );
-  }
-
-  Widget _quickAction(
-      String title,
-      IconData icon,
-      String route,
-      ) {
-    return InkWell(
-      onTap: () => Navigator.pushNamed(context, route),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 24),
-            const SizedBox(height: 4),
-            AppText(
-              title,
-              maxLines: 1,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+        onPressed: () {
+          setState(() {
+            _currentStatus = label;
+            _statusIcon = icon;
+            _statusColor = color;
+          });
+        },
       ),
     );
   }

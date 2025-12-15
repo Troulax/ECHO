@@ -1,6 +1,9 @@
 class Routes {
+  static const String root = '/root';
+
   static const String login = '/login';
   static const String signup = '/signup';
+
   static const String home = '/home';
   static const String report = '/report';
   static const String alerts = '/alerts';
