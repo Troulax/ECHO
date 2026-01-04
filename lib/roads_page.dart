@@ -1,72 +1,80 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'services/location_service.dart';
 
 class RoadsPage extends StatefulWidget {
-  const RoadsPage({super.key});
+  final String? targetName;
+  final double? targetLat;
+  final double? targetLng;
+
+  const RoadsPage({
+    super.key,
+    this.targetName,
+    this.targetLat,
+    this.targetLng,
+  });
+
+  bool get hasTarget => targetLat != null && targetLng != null;
 
   @override
   State<RoadsPage> createState() => _RoadsPageState();
 }
 
 class _RoadsPageState extends State<RoadsPage> {
-  GoogleMapController? _mapController;
-  LatLng? _userLatLng;
+  final _loc = LocationService();
+  LatLng? _userPos;
 
   @override
   void initState() {
     super.initState();
-    _initLocation();
+    _loadUser();
   }
 
-  Future<void> _initLocation() async {
-    // Konum servisi açık mı?
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // İstersen burada kullanıcıya uyarı gösterebilirsin.
-      return;
-    }
-
-    // İzin kontrolü
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.deniedForever ||
-        permission == LocationPermission.denied) {
-      // İzin verilmediyse haritayı konumsuz da gösterebilirsin.
-      return;
-    }
-
-    final pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
+  Future<void> _loadUser() async {
+    final pos = await _loc.getCurrent();
     setState(() {
-      _userLatLng = LatLng(pos.latitude, pos.longitude);
+      _userPos = LatLng(pos.latitude, pos.longitude);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_userPos == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final markers = <Marker>{
+      Marker(
+        markerId: const MarkerId("user"),
+        position: _userPos!,
+        infoWindow: const InfoWindow(title: "Konumum"),
+      ),
+    };
+
+    if (widget.hasTarget) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId("target"),
+          position: LatLng(widget.targetLat!, widget.targetLng!),
+          infoWindow: InfoWindow(
+            title: widget.targetName ?? "Hedef",
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Yol Durumu")),
-      body: _userLatLng == null
-          ? const Center(child: CircularProgressIndicator())
-          : GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _userLatLng!,
-                zoom: 14,
-              ),
-              myLocationEnabled: true,        // mavi nokta
-              myLocationButtonEnabled: true,  // köşedeki buton
-              trafficEnabled: true,           // trafik yoğunluğu (yeşil/sarı/kırmızı)
-              onMapCreated: (controller) {
-                _mapController = controller;
-              },
-            ),
+      appBar: AppBar(title: const Text("Yol")),
+      body: GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: _userPos!,
+          zoom: 14,
+        ),
+        myLocationEnabled: true,
+        markers: markers,
+      ),
     );
   }
 }

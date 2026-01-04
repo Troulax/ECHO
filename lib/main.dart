@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'screens/nearest_shelters_page.dart';
 
 import 'services/routes.dart';
 
@@ -71,8 +72,9 @@ class EchoApp extends StatelessWidget {
         Routes.alerts: (_) => const AlertsPage(),
         Routes.resources: (_) => const ResourcesPage(),
         Routes.contacts: (_) => const ContactsPage(),
-        Routes.roads: (_) => const RoadsPage(),
         Routes.pastQuakes: (_) => const PastQuakesPage(),
+        Routes.nearestShelters: (_) => NearestSheltersPage(),
+
       },
     );
   }
@@ -99,6 +101,8 @@ class _RootShellState extends State<RootShell> {
 
   @override
   Widget build(BuildContext context) {
+    final safeIndex = _index.clamp(0, _pages.length - 1);
+    
     return Scaffold(
       body: IndexedStack(
         index: _index,

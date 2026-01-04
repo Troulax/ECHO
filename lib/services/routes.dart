@@ -11,4 +11,6 @@ class Routes {
   static const String contacts = '/contacts';
   static const String roads = '/roads';
   static const String pastQuakes = '/pastQuakes';
+  static const String nearestShelters = '/nearest-shelters';
+
 }

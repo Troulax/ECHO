@@ -13,9 +13,16 @@ class AfadService {
     }
 
     final data = json.decode(response.body);
-    final list = List<Map<String, dynamic>>.from(data["result"]);
+    final List list = data["result"];
 
-    // Her zaman 10 deprem döndürelim
-    return list.take(10).toList();
+    return list.take(10).map<Map<String, dynamic>>((item) {
+      return {
+        'title': item['title'],
+        'mag': item['mag'],
+        'date': item['date_time'] ?? item['created_at'],
+        'lat': item['lat'],
+        'lng': item['lng'],
+      };
+    }).toList();
   }
 }
