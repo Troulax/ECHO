@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+
 import 'screens/nearest_shelters_page.dart';
 
 import 'services/routes.dart';
+import 'data/app_container.dart';
 
 import 'login_page.dart';
 import 'signup_page.dart';
@@ -14,9 +19,22 @@ import 'resources_page.dart';
 import 'contacts_page.dart';
 import 'roads_page.dart';
 import 'past_quakes_page.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  // ✅ Google Maps - Android platform view stabilitesi (Hybrid Composition)
+  final GoogleMapsFlutterPlatform mapsImplementation =
+      GoogleMapsFlutterPlatform.instance;
+  if (mapsImplementation is GoogleMapsFlutterAndroid) {
+    mapsImplementation.useAndroidViewSurface = true;
+  }
+
+  // ✅ İlk açılışta admin kullanıcısını DB'ye ekle (yoksa)
+  await authRepo.seedAdminIfNeeded();
 
   /// 🔴 ALT MENÜ TUŞLARINI GİZLE + EDGE TO EDGE
   SystemChrome.setEnabledSystemUIMode(
@@ -57,6 +75,7 @@ class EchoApp extends StatelessWidget {
         ),
       ),
 
+      // ✅ Uygulama açılınca önce login
       initialRoute: Routes.login,
 
       routes: {
@@ -64,6 +83,7 @@ class EchoApp extends StatelessWidget {
         Routes.login: (_) => const LoginPage(),
         Routes.signup: (_) => const SignUpPage(),
 
+        // ✅ Taskbar'lı ana kabuk
         Routes.root: (_) => const RootShell(),
 
         // Diğer sayfalar (istersen yine push ile kullanılabilir)
@@ -72,9 +92,9 @@ class EchoApp extends StatelessWidget {
         Routes.alerts: (_) => const AlertsPage(),
         Routes.resources: (_) => const ResourcesPage(),
         Routes.contacts: (_) => const ContactsPage(),
+        Routes.roads: (_) => const RoadsPage(),
         Routes.pastQuakes: (_) => const PastQuakesPage(),
-        Routes.nearestShelters: (_) => NearestSheltersPage(),
-
+        Routes.nearestShelters: (_) => const NearestSheltersPage(),
       },
     );
   }
@@ -102,14 +122,14 @@ class _RootShellState extends State<RootShell> {
   @override
   Widget build(BuildContext context) {
     final safeIndex = _index.clamp(0, _pages.length - 1);
-    
+
     return Scaffold(
       body: IndexedStack(
-        index: _index,
+        index: safeIndex,
         children: _pages,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
+        selectedIndex: safeIndex,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(

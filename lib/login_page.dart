@@ -1,6 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'services/routes.dart';
+import 'data/app_container.dart';
+import 'data/social_repository.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,18 +17,69 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  String? _errorText;
+  final SocialRepository _socialRepo = SocialRepository();
 
-  void _login() {
+  String? _errorText;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (username == 'admin' && password == '123') {
+    if (username.isEmpty || password.isEmpty) {
+      setState(() => _errorText = 'Kullanıcı adı ve şifre gerekli.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorText = null;
+    });
+
+    try {
+      // 1) Local DB login (drift)
+      final ok = await authRepo.login(username, password);
+
+      if (!ok) {
+        setState(() {
+          _errorText = 'Kullanıcı adı veya şifre hatalı';
+          _loading = false;
+        });
+        return;
+      }
+
+      // 2) Current user'ı sakla (tanıdıklar için gerekli)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('current_username', username);
+
+      // ✅ 3) Firestore user doc: UI'ı BEKLETME. Timeout'lu fire-and-forget.
+      () async {
+        try {
+          await _socialRepo
+              .ensureUserDoc(username)
+              .timeout(const Duration(seconds: 5));
+        } catch (_) {
+          // Sessiz geç: login akışını bozmasın.
+        }
+      }();
+
+      // ✅ 4) Hemen ana ekrana geç
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, Routes.root);
-    } else {
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _errorText = 'Kullanıcı adı veya şifre hatalı';
+        _errorText = 'Giriş sırasında hata: $e';
       });
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -60,7 +115,9 @@ class _LoginPageState extends State<LoginPage> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                    ),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -99,6 +156,7 @@ class _LoginPageState extends State<LoginPage> {
                         Text(
                           _errorText!,
                           style: const TextStyle(color: Colors.redAccent),
+                          textAlign: TextAlign.center,
                         ),
                       ],
 
@@ -108,7 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                         width: 220,
                         height: 42,
                         child: ElevatedButton(
-                          onPressed: _login,
+                          onPressed: _loading ? null : _login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.black,
@@ -116,7 +174,13 @@ class _LoginPageState extends State<LoginPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text('Giriş Yap'),
+                          child: _loading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Giriş Yap'),
                         ),
                       ),
 
@@ -136,10 +200,7 @@ class _LoginPageState extends State<LoginPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          icon: Image.network(
-                            'https://upload.wikimedia.org/wikipedia/commons/0/09/IOS_Google_icon.png',
-                            height: 18,
-                          ),
+                          icon: const Icon(Icons.g_mobiledata, color: Colors.white),
                           label: const Text('Google ile Giriş'),
                         ),
                       ),

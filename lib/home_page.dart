@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'data/social_repository.dart';
 
 import 'services/whistle_service.dart';
 import 'services/base_page.dart';
@@ -20,6 +23,29 @@ class _HomePageState extends State<HomePage> {
   String? _currentStatus; // null => henüz bildirilmedi
   IconData _statusIcon = Icons.info_outline;
   Color _statusColor = Colors.white;
+
+  // ✅ Status sync için eklendi (UI değişmez)
+  final SocialRepository _socialRepo = SocialRepository();
+  String? _me; // current_username
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMe();
+  }
+
+  Future<void> _loadMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    final u = prefs.getString('current_username');
+    setState(() => _me = u);
+
+    // Firestore'da user doc garanti olsun (hata olursa UI'ı bozmaz)
+    if (u != null) {
+      try {
+        await _socialRepo.ensureUserDoc(u);
+      } catch (_) {}
+    }
+  }
 
   void _openChatBot() {
     Navigator.push(
@@ -202,12 +228,42 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: () {
+
+        // ✅ SADECE BURAYA status sync eklendi
+        onPressed: () async {
           setState(() {
             _currentStatus = label;
             _statusIcon = icon;
             _statusColor = color;
           });
+
+          final me = _me;
+          if (me == null) return;
+
+          // label -> firestore status code
+          final String code;
+          switch (label) {
+            case 'Güvendeyim':
+              code = 'safe';
+              break;
+            case 'Yaralıyım':
+              code = 'injured';
+              break;
+            case 'Enkaz Altındayım':
+              code = 'trapped';
+              break;
+            default:
+              code = 'unknown';
+          }
+
+          try {
+            await _socialRepo.setMyStatus(username: me, status: code);
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Status sync hatası: $e')),
+            );
+          }
         },
       ),
     );

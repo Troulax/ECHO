@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
+import 'data/app_container.dart';
+
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
@@ -14,11 +16,58 @@ class _SignUpPageState extends State<SignUpPage> {
   final _passwordController = TextEditingController();
 
   String? _infoText;
+  bool _isLoading = false;
 
-  void _fakeCreateAccount() {
+  Future<void> _createAccount() async {
+    final name = _nameController.text.trim(); // şimdilik kullanılmıyor
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (name.isEmpty || username.isEmpty || password.isEmpty) {
+      setState(() => _infoText = 'Lütfen tüm alanları doldurun.');
+      return;
+    }
+
+    if (username.length < 3) {
+      setState(() => _infoText = 'Kullanıcı adı en az 3 karakter olmalı.');
+      return;
+    }
+
+    if (password.length < 3) {
+      setState(() => _infoText = 'Şifre en az 3 karakter olmalı.');
+      return;
+    }
+
     setState(() {
-      _infoText = 'Şimdilik kayıt yapılmıyor (demo sayfası).';
+      _isLoading = true;
+      _infoText = null;
     });
+
+    final ok = await authRepo.register(username, password);
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (ok) {
+      // başarı: login sayfasına dön
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hesap oluşturuldu. Giriş yapabilirsiniz.')),
+      );
+      Navigator.pop(context);
+    } else {
+      setState(() {
+        _infoText = 'Bu kullanıcı adı zaten alınmış olabilir.';
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -67,7 +116,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Database ile bağlantılı değil',
+                        'Bilgilerinizi girerek hesap oluşturun',
                         style: TextStyle(color: Colors.white70),
                       ),
                       const SizedBox(height: 24),
@@ -108,7 +157,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         width: 220,
                         height: 42,
                         child: ElevatedButton(
-                          onPressed: _fakeCreateAccount,
+                          onPressed: _isLoading ? null : _createAccount,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.black,
@@ -116,14 +165,20 @@ class _SignUpPageState extends State<SignUpPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text('Hesap Oluştur'),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Hesap Oluştur'),
                         ),
                       ),
 
                       const SizedBox(height: 12),
 
                       TextButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _isLoading ? null : () => Navigator.pop(context),
                         child: const Text(
                           'Giriş sayfasına dön',
                           style: TextStyle(color: Colors.white),
