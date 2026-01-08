@@ -24,6 +24,9 @@ class _RoadsPageState extends State<RoadsPage> {
   final _loc = LocationService();
   LatLng? _userPos;
 
+  // ✅ Trafik modu toggle
+  bool _trafficEnabled = false;
+
   @override
   void initState() {
     super.initState();
@@ -66,7 +69,22 @@ class _RoadsPageState extends State<RoadsPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Yol")),
+      appBar: AppBar(
+        title: const Text("Yol"),
+        actions: [
+          IconButton(
+            tooltip: _trafficEnabled ? "Trafiği Kapat" : "Trafiği Aç",
+            icon: Icon(
+              _trafficEnabled ? Icons.traffic : Icons.traffic_outlined,
+            ),
+            onPressed: () {
+              setState(() {
+                _trafficEnabled = !_trafficEnabled;
+              });
+            },
+          ),
+        ],
+      ),
       body: GoogleMap(
         initialCameraPosition: CameraPosition(
           target: _userPos!,
@@ -74,6 +92,9 @@ class _RoadsPageState extends State<RoadsPage> {
         ),
         myLocationEnabled: true,
         markers: markers,
+
+        // ✅ Trafik yoğunluğu katmanı
+        trafficEnabled: _trafficEnabled,
       ),
     );
   }

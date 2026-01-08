@@ -3,17 +3,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class SocialRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Login sonrası çağır: users/{username} dokümanı yoksa oluştur.
-  Future<void> ensureUserDoc(String username) async {
-    final ref = _db.collection('users').doc(username);
+Future<void> ensureUserDoc(String username) async {
+  final ref = _db.collection('users').doc(username);
+  final snap = await ref.get();
+
+  if (!snap.exists) {
+    // İlk kez oluşturuluyor: status default verilebilir (sadece ilk sefer!)
     await ref.set({
       'username': username,
       'createdAt': FieldValue.serverTimestamp(),
       'lastSeenAt': FieldValue.serverTimestamp(),
       'status': 'unknown',
       'statusUpdatedAt': FieldValue.serverTimestamp(),
+    });
+  } else {
+    // Var olan kullanıcı: SADECE lastSeen güncelle
+    await ref.set({
+      'lastSeenAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
+}
+
 
   Future<bool> userExists(String username) async {
     final snap = await _db.collection('users').doc(username).get();

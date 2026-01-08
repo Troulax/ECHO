@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 import 'data/social_repository.dart';
 
@@ -185,9 +186,10 @@ class _FriendStatusTile extends StatelessWidget {
         final statusCode = profile?.status ?? 'unknown';
         final ui = _StatusUi.fromCode(statusCode);
 
-        final subtitle = profile?.statusUpdatedAt == null
-            ? 'Son durum zamanı yok'
-            : 'Güncellendi: ${profile!.statusUpdatedAt!.toLocal().toString().substring(0, 16)}';
+      final subtitle = profile?.statusUpdatedAt == null
+          ? 'Son durum zamanı yok'
+          : 'Güncellendi: ${DateFormat('dd.MM.yyyy HH:mm').format(profile!.statusUpdatedAt!.toLocal())}';
+
 
         return Card(
           elevation: 0,
