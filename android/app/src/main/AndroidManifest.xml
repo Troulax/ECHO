@@ -32,7 +32,6 @@
             android:name="flutterEmbedding"
             android:value="2"/>
 
-        <!-- Google Maps Android API Key (SADECE KEY) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDr_VBKyQUmu1SpD81L-qjw3XjgmpVTJN8"/>

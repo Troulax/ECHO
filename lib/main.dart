@@ -93,7 +93,7 @@ class EchoApp extends StatelessWidget {
         Routes.resources: (_) => const ResourcesPage(),
         Routes.contacts: (_) => const ContactsPage(),
         Routes.roads: (_) => const RoadsPage(),
-        Routes.pastQuakes: (_) => const PastQuakesPage(),
+        Routes.pastQuakes: (_) => PastQuakesPage(),
         Routes.nearestShelters: (_) => const NearestSheltersPage(),
       },
     );

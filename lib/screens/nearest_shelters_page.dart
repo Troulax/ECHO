@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class NearestSheltersPage extends StatefulWidget {
   const NearestSheltersPage({super.key});
@@ -20,9 +20,6 @@ class _NearestSheltersPageState extends State<NearestSheltersPage> {
 
   List<_ShelterItem> _items = [];
 
-  static const String _apiKey =
-      String.fromEnvironment('GOOGLE_MAPS_API_KEY', defaultValue: '');
-
   @override
   void initState() {
     super.initState();
@@ -33,6 +30,7 @@ class _NearestSheltersPageState extends State<NearestSheltersPage> {
     try {
       final me = await _getCurrentPosition();
       final shelters = await _loadShelters();
+
       final items = shelters.map((s) {
         final d = Geolocator.distanceBetween(
           me.latitude,
@@ -61,14 +59,17 @@ class _NearestSheltersPageState extends State<NearestSheltersPage> {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw 'Konum servisleri kapalı';
     }
+
     var perm = await Geolocator.checkPermission();
     if (perm == LocationPermission.denied) {
       perm = await Geolocator.requestPermission();
     }
+
     if (perm == LocationPermission.denied ||
         perm == LocationPermission.deniedForever) {
       throw 'Konum izni verilmedi';
     }
+
     return Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -127,7 +128,7 @@ class _NearestSheltersPageState extends State<NearestSheltersPage> {
 
 /* ---------------- ROUTE PAGE ---------------- */
 
-class _RoutePage extends StatelessWidget {
+class _RoutePage extends StatefulWidget {
   final LatLng origin;
   final _ShelterItem shelter;
 
@@ -137,20 +138,82 @@ class _RoutePage extends StatelessWidget {
   });
 
   @override
+  State<_RoutePage> createState() => _RoutePageState();
+}
+
+class _RoutePageState extends State<_RoutePage> {
+  final Set<Polyline> _polylines = {};
+  final PolylinePoints _polylinePoints = PolylinePoints();
+
+  static const String _apiKey =
+      String.fromEnvironment('GOOGLE_MAPS_API_KEY', defaultValue: '');
+
+  @override
+  void initState() {
+    super.initState();
+    _drawRoute();
+  }
+
+  Future<void> _drawRoute() async {
+  debugPrint('API KEY: $_apiKey');
+
+  final result = await _polylinePoints.getRouteBetweenCoordinates(
+    googleApiKey: _apiKey,
+    request: PolylineRequest(
+      origin: PointLatLng(
+        widget.origin.latitude,
+        widget.origin.longitude,
+      ),
+      destination: PointLatLng(
+        widget.shelter.lat,
+        widget.shelter.lng,
+      ),
+      mode: TravelMode.driving,
+    ),
+  );
+
+  debugPrint('Directions status: ${result.status}');
+  debugPrint('Points count: ${result.points.length}');
+
+  if (result.points.isNotEmpty) {
+    setState(() {
+      _polylines.add(
+        Polyline(
+          polylineId: const PolylineId('route'),
+          width: 6,
+          points: result.points
+              .map((p) => LatLng(p.latitude, p.longitude))
+              .toList(),
+        ),
+      );
+    });
+  }
+}
+
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Yol Tarifi')),
       body: GoogleMap(
         initialCameraPosition: CameraPosition(
-          target: LatLng(shelter.lat, shelter.lng),
+          target: widget.origin,
           zoom: 14,
         ),
         myLocationEnabled: true,
         trafficEnabled: true,
+        polylines: _polylines,
         markers: {
           Marker(
+            markerId: const MarkerId('me'),
+            position: widget.origin,
+          ),
+          Marker(
             markerId: const MarkerId('shelter'),
-            position: LatLng(shelter.lat, shelter.lng),
+            position: LatLng(
+              widget.shelter.lat,
+              widget.shelter.lng,
+            ),
           ),
         },
       ),
@@ -187,6 +250,7 @@ class _ShelterItem extends _Shelter {
           'lng': s.lng,
         });
 
-  String get kmText =>
-      distanceMeters < 1000 ? '${distanceMeters.toInt()} m' : '${(distanceMeters / 1000).toStringAsFixed(2)} km';
+  String get kmText => distanceMeters < 1000
+      ? '${distanceMeters.toInt()} m'
+      : '${(distanceMeters / 1000).toStringAsFixed(2)} km';
 }

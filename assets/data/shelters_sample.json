@@ -1,4 +1,9 @@
 [
-  {"id":"06-001","name":"Göksu Parkı Toplanma Alanı","address":"Eryaman / Ankara","lat":39.9738,"lng":32.6896},
-  {"id":"06-002","name":"Sincan Kent Meydanı","address":"Sincan / Ankara","lat":39.9632,"lng":32.5821}
+  {"id":"06-001","name":"Göksu Parkı Toplanma Alanı","address":"Eryaman / Ankara","lat":39.994605,"lng":32.649122},
+  {"id":"06-002","name":"Susuz Parkı","address":"Eryaman / Ankara","lat":40.007738,"lng":32.624674},
+  {"id":"06-003","name":"Zeynepçik Parkı","address":"Eryaman / Ankara","lat":40.007738,"lng":32.624674},
+  {"id":"06-004","name":"Yiğit Yiğitdinç Parkı","address":"Yenimahalle / Ankara","lat":39.973201,"lng":32.767890},
+  {"id":"06-005","name":"Orhan Boran Parkı","address":"Yenimahalle / Ankara","lat":39.974551,"lng":32.766971},
+  {"id":"06-006","name":"Mongoloji Parkı","address":"Yenimahalle / Ankara","lat":39.968545,"lng":32.779484}
+
 ]
