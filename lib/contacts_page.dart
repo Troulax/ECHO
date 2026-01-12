@@ -80,7 +80,7 @@ class _ContactsPageState extends State<ContactsPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$to kullanıcısına istek gönderildi')),
       );
-      _tabController?.animateTo(2); // giden sekmesi
+      _tabController?.animateTo(2); 
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -175,7 +175,7 @@ class _FriendsTab extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.all(12),
               children: [
-                // Favoriler sayacı
+                
                 Card(
                   elevation: 0,
                   child: ListTile(
@@ -185,7 +185,7 @@ class _FriendsTab extends StatelessWidget {
                   ),
                 ),
 
-                // Favori listesi + kaldırma (X)
+                
                 if (favs.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Card(

@@ -1,8 +1,7 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'app_db.dart';
 
-// ignore_for_file: type=lint
+
 class $UsersTable extends Users with TableInfo<$UsersTable, User> {
   @override
   final GeneratedDatabase attachedDatabase;

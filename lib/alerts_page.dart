@@ -4,12 +4,8 @@ import 'services/base_page.dart';
 import 'services/app_text.dart';
 import 'services/echo_card.dart';
 
-// ✅ AfadService importu
-// Eğer afad_service.dart dosyan lib/ klasöründeyse:
 import 'services/afad_service.dart';
 
-// Eğer afad_service.dart dosyan lib/services/ içindeyse yukarıdaki importu kapatıp bunu aç:
-// import 'services/afad_service.dart';
 
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
@@ -21,7 +17,6 @@ class AlertsPage extends StatefulWidget {
 class _AlertsPageState extends State<AlertsPage> {
   late Future<List<Map<String, dynamic>>> _future;
 
-  // Ankara ve “Ankara’yı etkileyebilecek” çevre iller
   static const List<String> _ankaraImpactProvincesUpper = [
     'ANKARA',
     'ÇANKIRI',

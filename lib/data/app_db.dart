@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart'; // ✅ NativeDatabase buradan gelir
+import 'package:drift/native.dart'; 
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
@@ -14,7 +14,7 @@ class Users extends Table {
   TextColumn get salt => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
-  // ✅ Drift 2.30+ için doğru imza: List<Set<Column>>?
+ 
   @override
   List<Set<Column>>? get uniqueKeys => [
         {username},

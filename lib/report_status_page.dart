@@ -22,7 +22,7 @@ class _ReportStatusPageState extends State<ReportStatusPage> {
     super.didChangeDependencies();
     final arg = ModalRoute.of(context)?.settings.arguments;
     if (arg is String && (arg == 'safe' || arg == 'injured' || arg == 'trapped')) {
-      _status = arg; // anasayfadaki chip'ten ön-seçim
+      _status = arg; 
     }
   }
 
@@ -65,8 +65,8 @@ class _ReportStatusPageState extends State<ReportStatusPage> {
                 ? null
                 : () {
                     Navigator.pop(context, {
-                      'status': _status,                  // 'safe' | 'injured' | 'trapped'
-                      'note': _noteCtrl.text.trim(),     // opsiyonel not
+                      'status': _status,                 // 'safe' | 'injured' | 'trapped'
+                      'note': _noteCtrl.text.trim(),     
                     });
                   },
             label: const Text('Bildir'),

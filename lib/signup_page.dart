@@ -19,7 +19,7 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isLoading = false;
 
   Future<void> _createAccount() async {
-    final name = _nameController.text.trim(); // şimdilik kullanılmıyor
+    final name = _nameController.text.trim(); 
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -50,7 +50,7 @@ class _SignUpPageState extends State<SignUpPage> {
     setState(() => _isLoading = false);
 
     if (ok) {
-      // başarı: login sayfasına dön
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Hesap oluşturuldu. Giriş yapabilirsiniz.')),
       );
@@ -75,7 +75,7 @@ class _SignUpPageState extends State<SignUpPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // 🌊 Mavi Gradient
+          
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(

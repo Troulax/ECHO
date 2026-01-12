@@ -44,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // 1) Local DB login (drift)
+      
       final ok = await authRepo.login(username, password);
 
       if (!ok) {
@@ -55,22 +55,20 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // 2) Current user'ı sakla (tanıdıklar için gerekli)
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('current_username', username);
 
-      // ✅ 3) Firestore user doc: UI'ı BEKLETME. Timeout'lu fire-and-forget.
       () async {
         try {
           await _socialRepo
               .ensureUserDoc(username)
               .timeout(const Duration(seconds: 5));
         } catch (_) {
-          // Sessiz geç: login akışını bozmasın.
+          
         }
       }();
 
-      // ✅ 4) Hemen ana ekrana geç
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, Routes.root);
     } catch (e) {
@@ -88,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // 🌊 Mavi Gradient Arka Plan
+          
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -103,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
 
-          // 🧊 Glass Login Card
+
           Center(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
@@ -191,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
                         height: 42,
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            // Google ile giriş (şimdilik pasif)
+                            
                           },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,

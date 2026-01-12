@@ -94,7 +94,6 @@ class SocialRepository {
         .map((q) => q.docs.map(FriendRequest.fromDoc).toList());
   }
 
-  /// ✅ EKLENDİ: Giden istekler (contacts_page.dart bunu çağırıyor)
   Stream<List<FriendRequest>> outgoingRequestsStream(String me) {
     return _db
         .collection('friend_requests')
@@ -143,7 +142,6 @@ class SocialRepository {
     await ref.update({'status': 'rejected'});
   }
 
-  /// ✅ EKLENDİ: Giden isteği iptal et (contacts_page.dart bunu çağırıyor)
   Future<void> cancelOutgoingRequest(String from, String to) async {
     final docId = _requestDocId(from, to);
     await _db.collection('friend_requests').doc(docId).update({
@@ -151,7 +149,6 @@ class SocialRepository {
     });
   }
 
-  // -------------------- Favorites (max 3) --------------------
 
   Stream<List<String>> favoritesStream(String me) {
     return _db.collection('users').doc(me).snapshots().map((doc) {

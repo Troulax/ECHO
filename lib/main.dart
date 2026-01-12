@@ -26,22 +26,19 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // ✅ Google Maps - Android platform view stabilitesi (Hybrid Composition)
+  // ✅ Google Maps
   final GoogleMapsFlutterPlatform mapsImplementation =
       GoogleMapsFlutterPlatform.instance;
   if (mapsImplementation is GoogleMapsFlutterAndroid) {
     mapsImplementation.useAndroidViewSurface = true;
   }
 
-  // ✅ İlk açılışta admin kullanıcısını DB'ye ekle (yoksa)
   await authRepo.seedAdminIfNeeded();
 
-  /// 🔴 ALT MENÜ TUŞLARINI GİZLE + EDGE TO EDGE
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.immersiveSticky,
   );
 
-  /// 🔴 STATUS BAR / APPBAR ARASI BOŞLUĞU KALDIR
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -75,7 +72,6 @@ class EchoApp extends StatelessWidget {
         ),
       ),
 
-      // ✅ Uygulama açılınca önce login
       initialRoute: Routes.login,
 
       routes: {
@@ -83,10 +79,8 @@ class EchoApp extends StatelessWidget {
         Routes.login: (_) => const LoginPage(),
         Routes.signup: (_) => const SignUpPage(),
 
-        // ✅ Taskbar'lı ana kabuk
         Routes.root: (_) => const RootShell(),
 
-        // Diğer sayfalar (istersen yine push ile kullanılabilir)
         Routes.home: (_) => const HomePage(),
         Routes.report: (_) => const ReportStatusPage(),
         Routes.alerts: (_) => const AlertsPage(),
@@ -100,7 +94,6 @@ class EchoApp extends StatelessWidget {
   }
 }
 
-/// ✅ Alt görev çubuğu (NavigationBar) burada
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
 

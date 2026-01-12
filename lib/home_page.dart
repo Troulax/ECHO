@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
 
   String? _me;
 
-  String? _currentStatus; // null => henüz bildirilmedi
+  String? _currentStatus; 
   IconData _statusIcon = Icons.info_outline;
   Color _statusColor = Colors.white;
 
@@ -188,7 +188,7 @@ class _HomePageState extends State<HomePage> {
                         Colors.red,
                       ),
 
-                      // ✅ İSTEDİĞİN: Favoriler, durum butonlarının AŞAĞISINDA
+                      
                       const SizedBox(height: 14),
                       _favoritesSection(),
                     ],

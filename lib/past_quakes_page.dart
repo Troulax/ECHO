@@ -73,7 +73,6 @@ class PastQuakesPage extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
 
-                    /// SOL METİN
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,7 +96,6 @@ class PastQuakesPage extends StatelessWidget {
                       ),
                     ),
 
-                    /// SAĞ HARİTA İKONU
                     if (lat != null && lng != null)
                       IconButton(
                         icon: const Icon(Icons.location_on),

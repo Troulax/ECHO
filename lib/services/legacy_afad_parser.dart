@@ -1,7 +1,7 @@
 import '../models/shelter.dart';
 
 class LegacyAfadParser {
-  /// Tüm illerden flat Shelter listesi üretir
+  
   static List<Shelter> parse(Map<String, dynamic> json) {
     final List<Shelter> result = [];
 
@@ -33,7 +33,7 @@ class LegacyAfadParser {
                 id: a["id"].toString(),
                 name: a["tesis_adi"] ?? "Toplanma Alanı",
                 address: a["acik_adres"] ?? "",
-                // DİKKAT: x = boylam, y = enlem
+                
                 lat: (a["y"] as num).toDouble(),
                 lng: (a["x"] as num).toDouble(),
               ),

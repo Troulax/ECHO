@@ -41,7 +41,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
         );
       });
       _scrollToBottom();
-      return; // 🔴 AI'ye gitmez
+      return; // 
 }
 
     if (_isCrisisMessage(userText)) {
@@ -235,7 +235,7 @@ Your goal is to keep the user calm, supported, and informed.
       ),
       body: Column(
         children: [
-          //  🔴 ACİL DURUM KARTI
+          
           Container(
             margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             padding: const EdgeInsets.all(14),
@@ -398,8 +398,6 @@ Your goal is to keep the user calm, supported, and informed.
       avatar: Icon(icon, color: Colors.red),
       label: Text(label),
       onPressed: () {
-      // Şimdilik boş
-      // Sonra arama eklenebilir
       },
     );
   }

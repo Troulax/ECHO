@@ -49,7 +49,7 @@ class AuthRepository {
           );
       return true;
     } catch (_) {
-      return false; // username unique çakışması vb
+      return false; 
     }
   }
 }
