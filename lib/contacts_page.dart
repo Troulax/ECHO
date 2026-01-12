@@ -28,7 +28,9 @@ class _ContactsPageState extends State<ContactsPage>
   Future<void> _loadMe() async {
     final prefs = await SharedPreferences.getInstance();
     final u = prefs.getString('current_username');
+    if (!mounted) return;
     setState(() => _me = u);
+
     if (u != null) {
       try {
         await _repo.ensureUserDoc(u);
@@ -78,7 +80,21 @@ class _ContactsPageState extends State<ContactsPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$to kullanıcısına istek gönderildi')),
       );
-      _tabController?.animateTo(2);
+      _tabController?.animateTo(2); // giden sekmesi
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e')),
+      );
+    }
+  }
+
+  Future<void> _toggleFavorite(String other) async {
+    final me = _me;
+    if (me == null || me.trim().isEmpty) return;
+
+    try {
+      await _repo.toggleFavorite(me: me, other: other, max: 3);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,11 +127,13 @@ class _ContactsPageState extends State<ContactsPage>
         ],
       ),
       body: me == null
-          ? const Center(child: Text('Kullanıcı bulunamadı. Lütfen tekrar giriş yapın.'))
+          ? const Center(
+              child: Text('Kullanıcı bulunamadı. Lütfen tekrar giriş yapın.'),
+            )
           : TabBarView(
               controller: _tabController,
               children: [
-                _FriendsTab(me: me, repo: _repo),
+                _FriendsTab(me: me, repo: _repo, onToggleFavorite: _toggleFavorite),
                 _IncomingTab(me: me, repo: _repo),
                 _OutgoingTab(me: me, repo: _repo),
               ],
@@ -134,31 +152,101 @@ class _ContactsPageState extends State<ContactsPage>
 class _FriendsTab extends StatelessWidget {
   final String me;
   final SocialRepository repo;
+  final Future<void> Function(String other) onToggleFavorite;
 
-  const _FriendsTab({required this.me, required this.repo});
+  const _FriendsTab({
+    required this.me,
+    required this.repo,
+    required this.onToggleFavorite,
+  });
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<String>>(
       stream: repo.friendsStream(me),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final friends = snap.data ?? [];
-        if (friends.isEmpty) {
-          return const Center(child: Text('Henüz tanıdığınız yok.'));
-        }
+      builder: (context, friendsSnap) {
+        final friends = friendsSnap.data ?? <String>[];
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(12),
-          itemCount: friends.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (_, i) {
-            final friendUsername = friends[i];
-            return _FriendStatusTile(
-              username: friendUsername,
-              repo: repo,
+        return StreamBuilder<List<String>>(
+          stream: repo.favoritesStream(me),
+          builder: (context, favSnap) {
+            final favs = favSnap.data ?? <String>[];
+
+            return ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                // Favoriler sayacı
+                Card(
+                  elevation: 0,
+                  child: ListTile(
+                    leading: const Icon(Icons.star),
+                    title: Text('Favoriler: ${favs.length}/3'),
+                    subtitle: const Text('En fazla 3 kişiyi favori yapabilirsin.'),
+                  ),
+                ),
+
+                // Favori listesi + kaldırma (X)
+                if (favs.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Card(
+                    elevation: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Favori Listeniz',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 10),
+                          ...favs.take(3).map((u) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.person, size: 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      u,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Favorilerden kaldır',
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () => onToggleFavorite(u),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+
+                if (friends.isEmpty)
+                  const Center(child: Text('Henüz tanıdığınız yok.'))
+                else
+                  ...friends.map((friendUsername) {
+                    final isFav = favs.contains(friendUsername);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _FriendStatusTile(
+                        username: friendUsername,
+                        repo: repo,
+                        isFavorite: isFav,
+                        onToggleFavorite: () => onToggleFavorite(friendUsername),
+                      ),
+                    );
+                  }),
+              ],
             );
           },
         );
@@ -170,10 +258,14 @@ class _FriendsTab extends StatelessWidget {
 class _FriendStatusTile extends StatelessWidget {
   final String username;
   final SocialRepository repo;
+  final bool isFavorite;
+  final VoidCallback onToggleFavorite;
 
   const _FriendStatusTile({
     required this.username,
     required this.repo,
+    required this.isFavorite,
+    required this.onToggleFavorite,
   });
 
   @override
@@ -182,26 +274,41 @@ class _FriendStatusTile extends StatelessWidget {
       stream: repo.userProfileStream(username),
       builder: (context, snap) {
         final profile = snap.data;
-
         final statusCode = profile?.status ?? 'unknown';
         final ui = _StatusUi.fromCode(statusCode);
 
-      final subtitle = profile?.statusUpdatedAt == null
-          ? 'Son durum zamanı yok'
-          : 'Güncellendi: ${DateFormat('dd.MM.yyyy HH:mm').format(profile!.statusUpdatedAt!.toLocal())}';
-
+        final subtitle = profile?.statusUpdatedAt == null
+            ? 'Son durum zamanı yok'
+            : 'Güncellendi: ${DateFormat('dd.MM.yyyy HH:mm').format(profile!.statusUpdatedAt!.toLocal())}';
 
         return Card(
           elevation: 0,
           child: ListTile(
             leading: CircleAvatar(
+              backgroundColor: ui.color.withOpacity(0.15),
+              foregroundColor: ui.color,
               child: Text(username.isNotEmpty ? username[0].toUpperCase() : '?'),
             ),
             title: Text(username),
             subtitle: Text(subtitle),
-            trailing: Chip(
-              avatar: Icon(ui.icon, color: ui.color, size: 18),
-              label: Text(ui.label),
+            trailing: Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Chip(
+                  backgroundColor: ui.color.withOpacity(0.12),
+                  avatar: Icon(ui.icon, color: ui.color, size: 18),
+                  label: Text(
+                    ui.label,
+                    style: TextStyle(color: ui.color, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(
+                  tooltip: isFavorite ? 'Favoriden çıkar' : 'Favoriye ekle',
+                  icon: Icon(isFavorite ? Icons.star : Icons.star_border),
+                  onPressed: onToggleFavorite,
+                ),
+              ],
             ),
           ),
         );
@@ -221,13 +328,8 @@ class _IncomingTab extends StatelessWidget {
     return StreamBuilder<List<FriendRequest>>(
       stream: repo.incomingRequestsStream(me),
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
         final reqs = snap.data ?? [];
-        if (reqs.isEmpty) {
-          return const Center(child: Text('Gelen istek yok.'));
-        }
+        if (reqs.isEmpty) return const Center(child: Text('Gelen istek yok.'));
 
         return ListView.separated(
           padding: const EdgeInsets.all(12),
@@ -238,7 +340,9 @@ class _IncomingTab extends StatelessWidget {
             return Card(
               elevation: 0,
               child: ListTile(
-                leading: CircleAvatar(child: Text(r.from.isNotEmpty ? r.from[0].toUpperCase() : '?')),
+                leading: CircleAvatar(
+                  child: Text(r.from.isNotEmpty ? r.from[0].toUpperCase() : '?'),
+                ),
                 title: Text(r.from),
                 subtitle: const Text('Size tanıdık isteği gönderdi'),
                 trailing: Wrap(
@@ -284,9 +388,6 @@ class _OutgoingTab extends StatelessWidget {
     return StreamBuilder<List<FriendRequest>>(
       stream: repo.outgoingRequestsStream(me),
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
         final reqs = snap.data ?? [];
         if (reqs.isEmpty) {
           return const Center(child: Text('Gönderilmiş bekleyen istek yok.'));
@@ -301,7 +402,9 @@ class _OutgoingTab extends StatelessWidget {
             return Card(
               elevation: 0,
               child: ListTile(
-                leading: CircleAvatar(child: Text(r.to.isNotEmpty ? r.to[0].toUpperCase() : '?')),
+                leading: CircleAvatar(
+                  child: Text(r.to.isNotEmpty ? r.to[0].toUpperCase() : '?'),
+                ),
                 title: Text(r.to),
                 subtitle: const Text('Beklemede'),
                 trailing: TextButton(
@@ -337,7 +440,6 @@ class _StatusUi {
         return _StatusUi('Yaralı', Icons.medical_information, Colors.orange);
       case 'trapped':
         return _StatusUi('Enkaz', Icons.report_gmailerrorred, Colors.red);
-      case 'unknown':
       default:
         return _StatusUi('Bilinmiyor', Icons.help_outline, Colors.grey);
     }

@@ -3,27 +3,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class SocialRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-Future<void> ensureUserDoc(String username) async {
-  final ref = _db.collection('users').doc(username);
-  final snap = await ref.get();
+  Future<void> ensureUserDoc(String username) async {
+    final ref = _db.collection('users').doc(username);
+    final snap = await ref.get();
 
-  if (!snap.exists) {
-    // İlk kez oluşturuluyor: status default verilebilir (sadece ilk sefer!)
-    await ref.set({
-      'username': username,
-      'createdAt': FieldValue.serverTimestamp(),
-      'lastSeenAt': FieldValue.serverTimestamp(),
-      'status': 'unknown',
-      'statusUpdatedAt': FieldValue.serverTimestamp(),
-    });
-  } else {
-    // Var olan kullanıcı: SADECE lastSeen güncelle
-    await ref.set({
-      'lastSeenAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    if (!snap.exists) {
+      await ref.set({
+        'username': username,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastSeenAt': FieldValue.serverTimestamp(),
+        'status': 'unknown',
+        'statusUpdatedAt': FieldValue.serverTimestamp(),
+        'favorites': <String>[],
+      });
+    } else {
+      await ref.set({
+        'lastSeenAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
   }
-}
-
 
   Future<bool> userExists(String username) async {
     final snap = await _db.collection('users').doc(username).get();
@@ -36,10 +34,9 @@ Future<void> ensureUserDoc(String username) async {
     return snap.exists;
   }
 
-  /// ✅ Status güncelle (HomePage burayı çağıracak)
   Future<void> setMyStatus({
     required String username,
-    required String status, // safe / injured / trapped / unknown
+    required String status,
   }) async {
     final ref = _db.collection('users').doc(username);
     await ref.set({
@@ -49,7 +46,6 @@ Future<void> ensureUserDoc(String username) async {
     }, SetOptions(merge: true));
   }
 
-  /// ✅ Kullanıcıyı stream'le (Tanıdıkların statusunu canlı göstermek için)
   Stream<UserProfile?> userProfileStream(String username) {
     return _db.collection('users').doc(username).snapshots().map((snap) {
       if (!snap.exists) return null;
@@ -58,7 +54,6 @@ Future<void> ensureUserDoc(String username) async {
     });
   }
 
-  /// Friend request: send
   Future<void> sendFriendRequest({
     required String fromUsername,
     required String toUsername,
@@ -99,6 +94,7 @@ Future<void> ensureUserDoc(String username) async {
         .map((q) => q.docs.map(FriendRequest.fromDoc).toList());
   }
 
+  /// ✅ EKLENDİ: Giden istekler (contacts_page.dart bunu çağırıyor)
   Stream<List<FriendRequest>> outgoingRequestsStream(String me) {
     return _db
         .collection('friend_requests')
@@ -139,7 +135,6 @@ Future<void> ensureUserDoc(String username) async {
     });
 
     batch.update(reqRef, {'status': 'accepted'});
-
     await batch.commit();
   }
 
@@ -148,9 +143,77 @@ Future<void> ensureUserDoc(String username) async {
     await ref.update({'status': 'rejected'});
   }
 
+  /// ✅ EKLENDİ: Giden isteği iptal et (contacts_page.dart bunu çağırıyor)
   Future<void> cancelOutgoingRequest(String from, String to) async {
-    final ref = _db.collection('friend_requests').doc(_requestDocId(from, to));
-    await ref.update({'status': 'cancelled'});
+    final docId = _requestDocId(from, to);
+    await _db.collection('friend_requests').doc(docId).update({
+      'status': 'cancelled',
+    });
+  }
+
+  // -------------------- Favorites (max 3) --------------------
+
+  Stream<List<String>> favoritesStream(String me) {
+    return _db.collection('users').doc(me).snapshots().map((doc) {
+      if (!doc.exists) return <String>[];
+      final data = doc.data() as Map<String, dynamic>;
+      final favs = (data['favorites'] as List?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty)
+              .toList() ??
+          <String>[];
+      return favs;
+    });
+  }
+
+  Future<void> toggleFavorite({
+    required String me,
+    required String other,
+    int max = 3,
+  }) async {
+    final ref = _db.collection('users').doc(me);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      final data = snap.data() ?? <String, dynamic>{};
+      final favs = (data['favorites'] as List?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty)
+              .toList() ??
+          <String>[];
+
+      if (favs.contains(other)) {
+        favs.remove(other);
+        tx.set(ref, {'favorites': favs}, SetOptions(merge: true));
+        return;
+      }
+
+      if (favs.length >= max) {
+        throw 'En fazla $max kişiyi favorilere ekleyebilirsin.';
+      }
+
+      favs.add(other);
+      tx.set(ref, {'favorites': favs}, SetOptions(merge: true));
+    });
+  }
+
+  Stream<List<UserProfile>> favoriteProfilesStream(List<String> usernames) {
+    if (usernames.isEmpty) return Stream.value(<UserProfile>[]);
+
+    return _db
+        .collection('users')
+        .where(FieldPath.documentId, whereIn: usernames)
+        .snapshots()
+        .map((qs) {
+      final byId = <String, UserProfile>{};
+      for (final d in qs.docs) {
+        byId[d.id] = UserProfile.fromMap(d.id, d.data());
+      }
+      return usernames
+          .where((u) => byId.containsKey(u))
+          .map((u) => byId[u]!)
+          .toList();
+    });
   }
 
   static String _requestDocId(String from, String to) => '${from}__${to}';
