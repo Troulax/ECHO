@@ -18,6 +18,7 @@ dependencies:
 
   # Network & Utils
   http: ^1.2.1
+  flutter_dotenv: ^5.1.0
   url_launcher: ^6.3.0
   shared_preferences: ^2.2.3
   crypto: ^3.0.3
@@ -60,3 +61,4 @@ flutter:
     - assets/sounds/whistle.wav
     - assets/data/shelters_sample.json
     - assets/data/
+    - .env

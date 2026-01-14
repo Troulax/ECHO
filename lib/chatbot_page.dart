@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,7 +25,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
   ];
 
   // 🔴 API KEY
-  static const String openAiApiKey = "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";
+  final String openAiApiKey = dotenv.env['OPENAI_API_KEY'] ?? "";
 
   Future<void> sendMessage(String userText) async {
 
